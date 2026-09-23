@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "java/infra" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Verify on Unix
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x mvnw
+          ./mvnw -B clean verify
+
+      - name: Verify on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\mvnw.cmd -B clean verify
+
+      - name: Run executable JAR on Unix
+        if: runner.os != 'Windows'
+        run: |
+          jar=$(find target -maxdepth 1 -name '*-all.jar' -print -quit)
+          test -n "$jar"
+          java -jar "$jar" --version
+
+      - name: Run executable JAR on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $jar = Get-ChildItem -Path target -Filter '*-all.jar' | Select-Object -First 1
+          if (-not $jar) { throw 'Executable JAR was not created' }
+          java -jar $jar.FullName --version
+
+      - name: Upload JAR Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-${{ matrix.os }}-${{ github.run_number }}
+          path: target/*-all.jar
+          if-no-files-found: error
