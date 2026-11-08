@@ -1,4 +1,5 @@
 target/
+out/
 .idea/
 *.iml
 .vscode/
@@ -6,3 +7,27 @@ target/
 .DS_Store
 Thumbs.db
 development_shell.bat
+
+# Local build caches, credentials and editor temporary files
+/.m2/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+*.key
+*.p12
+*.pfx
+~$*
+
+# Supplied course materials (keep future report PDFs eligible for Git)
+/LAB_01 (1).pdf
+/LAB_02.pdf
+/LAB_03.pdf
+/LAB_04.pdf
+/LAB_05.pdf
+/LAB_06.pdf
+/LAB_07.pdf
+/COPILOT_GUIDE.pdf
+/MAVEN_ACTIONS_GUIDE.pdf
+/PYTHON_ACTIONS_GUIDE.pdf

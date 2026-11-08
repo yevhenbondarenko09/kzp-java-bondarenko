@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "java/infra" ]
   pull_request:
     branches: [ "main" ]
 
@@ -46,6 +45,7 @@ jobs:
           jar=$(find target -maxdepth 1 -name '*-all.jar' -print -quit)
           test -n "$jar"
           java -jar "$jar" --version
+          java -jar "$jar" --input data/input.csv --output target/ci-report.txt
 
       - name: Run executable JAR on Windows
         if: runner.os == 'Windows'
@@ -54,6 +54,7 @@ jobs:
           $jar = Get-ChildItem -Path target -Filter '*-all.jar' | Select-Object -First 1
           if (-not $jar) { throw 'Executable JAR was not created' }
           java -jar $jar.FullName --version
+          java -jar $jar.FullName --input data/input.csv --output target/ci-report.txt
 
       - name: Upload JAR Artifact
         if: success()
