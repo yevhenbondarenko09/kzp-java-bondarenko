@@ -1,6 +1,7 @@
 package ua.lpnu.kzp;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -14,6 +15,15 @@ public final class InventoryReport {
      * @return звіт із діагностикою у вихідному порядку
      */
     public static String generate(List<String> lines) {
+        Analysis analysis = analyze(lines);
+        List<SparePart> parts = analysis.parts();
+        List<String> errors = analysis.errors();
+        StockValue total = analysis.total();
+        return format(parts, errors, total);
+    }
+
+    /** Розбирає вхід один раз для старого звіту й нових предметних операцій. */
+    static Analysis analyze(List<String> lines) {
         List<SparePart> parts = new ArrayList<>();
         List<String> errors = new ArrayList<>();
         StockValue total = new StockValue(0, 0);
@@ -40,6 +50,32 @@ public final class InventoryReport {
                 errors.add(String.format(Locale.ROOT, "Рядок %d: %s", index + 1, reason));
             }
         }
+        return new Analysis(parts, errors, total);
+    }
+
+    /** Зберігає прийняті записи окремо від множини унікальних деталей. */
+    record Analysis(List<SparePart> parts, List<String> errors, StockValue total) {
+        Analysis {
+            parts = List.copyOf(parts);
+            errors = List.copyOf(errors);
+        }
+
+        int uniqueCount() { return new HashSet<>(parts).size(); }
+
+        /** Сума резервів на одиницю за всіма записами, включно з повторами. */
+        double warrantyCost() {
+            double result = 0;
+            for (SparePart part : parts) {
+                result += part.warrantyCost();
+                if (!Double.isFinite(result)) {
+                    throw new IllegalArgumentException("гарантійна вартість виходить за числовий діапазон");
+                }
+            }
+            return result;
+        }
+    }
+
+    private static String format(List<SparePart> parts, List<String> errors, StockValue total) {
         SparePart highest = null;
         for (SparePart part : parts) {
             if (highest == null || part.unitPrice() > highest.unitPrice()) {
