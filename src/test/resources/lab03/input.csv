@@ -1,0 +1,14 @@
+SKU-001;Brake pads;10;250.00;GrandAuto
+SKU-002;Brake discs;4;1200.00;Modern
+SKU-003;Windshield washer fluid;20;75.00;UkraAuto
+SKU-004;Washer reservoir;-2;150.00;AutoImp
+SKU-005;Interior light bulb;abc;350.00;ZapAuto
+SKU-001;Brake pads;10;250.00;GrandAuto
+SKU-001;Brake pads;4;250.00;GrandAuto;REPLACEMENT
+SKU-001;Premium brake pads;2;300.00;Modern;ORIGINAL
+SKU-006;Oil filter;0;2000.00;GrandAuto;ORIGINAL
+SKU-007;Wiper blade;5;0.00;Modern;REPLACEMENT
+SKU-008;Air filter;3;200.00;AutoImp;ORIGINAL
+SKU-009;Spark plug;1;NaN;ZapAuto;ORIGINAL
+SKU-010;Headlight bulb;2;2000.00;ZapAuto;REPLACEMENT
+SKU-011;Cabin filter;1;100.00;AutoImp;UNKNOWN

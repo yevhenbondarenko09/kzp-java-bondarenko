@@ -3,6 +3,7 @@ package ua.lpnu.kzp;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -118,7 +119,10 @@ class PartHierarchyTest {
 
     @Test
     void extendedExampleSeparatesRecordsStockAndUniqueParts() throws IOException {
-        List<String> rows = Files.readAllLines(Path.of("data", "lab03.csv"), StandardCharsets.UTF_8);
+        List<String> rows;
+        try (InputStream csv = getClass().getResourceAsStream("/lab03/input.csv")) {
+            rows = new String(csv.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+        }
         InventoryReport.Analysis result = InventoryReport.analyze(rows);
         assertEquals(10, result.parts().size());
         assertEquals(8, result.uniqueCount());
