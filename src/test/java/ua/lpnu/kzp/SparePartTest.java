@@ -29,7 +29,7 @@ class SparePartTest {
 
     @Test
     void constructorAllowsZerosAndNormalizesNegativeZero() {
-        SparePart part = new SparePart("x", "y", 0, -0.0, "z");
+        SparePart part = new OriginalPart("x", "y", 0, -0.0, "z");
         assertEquals(0, part.stock());
         assertEquals(0.0, part.unitPrice());
     }
@@ -37,20 +37,20 @@ class SparePartTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
     void constructorRejectsBlankText(String text) {
-        assertThrows(IllegalArgumentException.class, () -> new SparePart(text, "n", 0, 0, "s"));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", text, 0, 0, "s"));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", "n", 0, 0, text));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart(text, "n", 0, 0, "s"));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", text, 0, 0, "s"));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", "n", 0, 0, text));
     }
 
     @Test
     void constructorRejectsNullAndInvalidNumbers() {
-        assertThrows(NullPointerException.class, () -> new SparePart(null, "n", 0, 0, "s"));
-        assertThrows(NullPointerException.class, () -> new SparePart("x", null, 0, 0, "s"));
-        assertThrows(NullPointerException.class, () -> new SparePart("x", "n", 0, 0, null));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", "n", -1, 0, "s"));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", "n", 0, -1, "s"));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", "n", 0, Double.NaN, "s"));
-        assertThrows(IllegalArgumentException.class, () -> new SparePart("x", "n", 0, Double.POSITIVE_INFINITY, "s"));
+        assertThrows(NullPointerException.class, () -> new OriginalPart(null, "n", 0, 0, "s"));
+        assertThrows(NullPointerException.class, () -> new OriginalPart("x", null, 0, 0, "s"));
+        assertThrows(NullPointerException.class, () -> new OriginalPart("x", "n", 0, 0, null));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", "n", -1, 0, "s"));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", "n", 0, -1, "s"));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", "n", 0, Double.NaN, "s"));
+        assertThrows(IllegalArgumentException.class, () -> new OriginalPart("x", "n", 0, Double.POSITIVE_INFINITY, "s"));
     }
 
     @ParameterizedTest
