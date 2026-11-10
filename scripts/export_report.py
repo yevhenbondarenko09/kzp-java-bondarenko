@@ -1,10 +1,15 @@
 """Export the audited Markdown report to DOCX using the Python standard library."""
 from pathlib import Path
+import argparse
 import re
 from zipfile import ZipFile, ZIP_DEFLATED
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--input', type=Path, default=ROOT / 'REPORT.md')
+parser.add_argument('--output', type=Path, default=ROOT / 'REPORT.docx')
+args = parser.parse_args()
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 ET.register_namespace('w', W)
 
@@ -75,7 +80,7 @@ def table(parent, lines):
     paragraph(parent)
 
 
-source = ROOT.joinpath('REPORT.md').read_text(encoding='utf-8')
+source = args.input.read_text(encoding='utf-8')
 document = el('document')
 body = sub(document, 'body')
 lines = source.splitlines()
@@ -147,7 +152,7 @@ doc_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>'''
-output = ROOT / 'REPORT.docx'
+output = args.output
 with ZipFile(output, 'w', ZIP_DEFLATED) as package:
     package.writestr('[Content_Types].xml', content_types)
     package.writestr('_rels/.rels', rels)
@@ -161,6 +166,7 @@ with ZipFile(output) as package:
         if name.endswith(('.xml', '.rels')):
             ET.fromstring(package.read(name))
     text = ''.join(ET.fromstring(package.read('word/document.xml')).itertext())
-    for token in ('Бондаренко Євген Віталійович', 'КІ-304', '8800.00', '12. Висновки', '--input'):
+    for token in (line.lstrip('#').strip() for line in source.splitlines()
+                  if line.startswith('#')):
         assert token in text, token
 print(f'Created and structurally validated {output.name}: {output.stat().st_size} bytes')
