@@ -1,10 +1,10 @@
-# Склад автозапчастин — лабораторна робота № 1
+# Склад автозапчастин — лабораторна робота № 2
 
 [![CI](https://github.com/yevhenbondarenko09/kzp-java-bondarenko/actions/workflows/ci.yml/badge.svg)](https://github.com/yevhenbondarenko09/kzp-java-bondarenko/actions/workflows/ci.yml)
 
 Бондаренко Євген Віталійович, КІ-304. Варіант 4, рівень 2.
 
-Консольна Java-програма читає CSV із записами про автозапчастини й записує однаковий звіт у консоль і UTF-8-файл. Рахує коректні записи, загальний запас і його вартість, знаходить найдорожчу деталь. Для хибних рядків указує номер і причину помилки.
+У цій лабораторній я продовжив консольну програму обліку автозапчастин. Вона читає CSV й записує однаковий звіт у консоль і UTF-8-файл. Рахує коректні записи, загальний запас і його вартість, знаходить найдорожчу деталь. Для хибних рядків указує номер і причину помилки.
 
 ## Вимоги та збірка
 
@@ -16,7 +16,7 @@ Windows PowerShell, із кореня репозиторію:
 java --version
 javac --version
 .\mvnw.cmd -B clean verify
-java -jar target/lab01-1.0.0-all.jar
+java -jar target/autoparts-all.jar
 ```
 
 macOS / Ubuntu:
@@ -24,10 +24,24 @@ macOS / Ubuntu:
 ```sh
 chmod +x mvnw
 ./mvnw -B clean verify
-java -jar target/lab01-1.0.0-all.jar
+java -jar target/autoparts-all.jar
 ```
 
 `verify` виконує компіляцію, JUnit-тести, пакування й SpotBugs. Окрема команда `package` не запускає SpotBugs, прив'язаний до пізнішої фази `verify`.
+
+Виконуваний файл має сталу назву `target/autoparts-all.jar`, задану через `finalName` у POM. Версію показує `--version`; її зміна не змінює команду запуску.
+
+Кожна лабораторна має окрему основну версію: ЛР1 — 1.x.x, ЛР2 — 2.x.x. Версію змінюю тільки в `pom.xml`, після чого перебудовую JAR. Назва файла при цьому залишається сталою.
+
+## Що змінилося після ЛР1
+
+У ЛР1 `InventoryReport` розбирав CSV у масив полів і працював з індексами. У ЛР2 я замінив запис об'єктом `SparePart`, а підсумки запасу й вартості об'єднав у record `StockValue`. Список `List<SparePart>` містить лише прийняті записи. Формат CSV, формули показників і контрольний звіт я зберіг.
+
+`SparePart` має п'ять полів: `sku:String`, `name:String`, `stock:int`, `unitPrice:double`, `supplier:String`. Усі поля `private final`, сеттерів немає. Методи `sku()`, `name()`, `stock()`, `unitPrice()` і `supplier()` повертають значення. `toString()` форматує ціну через `Locale.ROOT`.
+
+`SparePart.fromCsv()` спочатку перевіряє кількість і заповненість полів та розбирає числа. Потім конструктор перевіряє допустимість значень: текст не може бути null або порожнім, запас і ціна мають бути невід'ємними, ціна має бути скінченною. Нуль дозволений. Ці перевірки діють і за прямого виклику конструктора. Record `StockValue` відхиляє від'ємні підсумки, NaN та нескінченність.
+
+`InventoryReport` перевіряє майбутню сумарну вартість до додавання об'єкта в список. Хибний рядок не змінює підсумки; у звіт потрапляють його номер і причина помилки. Для `a;b;-1;abc;s` першою буде помилка формату ціни, а для `a;b;-1;2;s` після розбору чисел буде повідомлення про від'ємний запас. Я обрав порядок «спочатку формат, потім валідність». На рядках із кількома помилками він може змінити перше повідомлення порівняно з ЛР1.
 
 ## Формат входу
 
@@ -54,9 +68,9 @@ SKU-005;Interior light bulb;abc;350.00;ZapAuto
 ## Запуск і результат
 
 ```sh
-java -jar target/lab01-1.0.0-all.jar --help
-java -jar target/lab01-1.0.0-all.jar --version
-java -jar target/lab01-1.0.0-all.jar --input data/input.csv --output out/report.txt
+java -jar target/autoparts-all.jar --help
+java -jar target/autoparts-all.jar --version
+java -jar target/autoparts-all.jar --input data/input.csv --output out/report.txt
 ```
 
 Без аргументів використовуються `data/input.csv` та `out/report.txt` відносно поточної робочої теки. Для шляхів із пробілами потрібні лапки; можна передавати абсолютні шляхи. Вихідні каталоги створюються автоматично, наявний вихідний звіт перезаписується. Вхідний файл вихідним звітом перезаписати не можна. `--help` і `--version` запускаються окремо від інших параметрів.
@@ -78,18 +92,24 @@ java -jar target/lab01-1.0.0-all.jar --input data/input.csv --output out/report.
 
 ## Структура й перевірки
 
-- `src/main/java/ua/lpnu/kzp/Main.java` — параметри, виконання та коди завершення.
+- `src/main/java/ua/lpnu/kzp/Main.java` — точка входу, UTF-8-потоки й код завершення.
+- `src/main/java/ua/lpnu/kzp/ArgumentParser.java` — перевірка CLI та вибір шляхів.
+- `src/main/java/ua/lpnu/kzp/InventoryController.java` — довідка, версія, запуск обробки й діагностика.
+- `src/main/java/ua/lpnu/kzp/ApplicationInfo.java` — читання метаданих Maven зі зібраного ресурсу.
+- `src/main/resources/application.properties` — шаблон версії та імені JAR; Maven підставляє значення з POM.
+- `src/main/java/ua/lpnu/kzp/SparePart.java` — незмінна сутність, валідація конструктора, фабрика `fromCsv` і форматоване подання.
+- `src/main/java/ua/lpnu/kzp/StockValue.java` — незмінний record запасу й вартості.
 - `src/main/java/ua/lpnu/kzp/FileReport.java` — файлові операції UTF-8.
-- `src/main/java/ua/lpnu/kzp/InventoryReport.java` — перевірка CSV, показники та форматування.
+- `src/main/java/ua/lpnu/kzp/InventoryReport.java` — список прийнятих SparePart, показники та форматування.
 - `src/test/java/ua/lpnu/kzp/` — JUnit 5: обчислення, хибні дані, порожній набір, локаль, український текст, CLI та файлові помилки.
 - `.github/workflows/ci.yml` — `clean verify`, запуск JAR і артефакти на трьох ОС; віддалений стан перевіряється в Actions.
-- `REPORT.md`, `REPORT.docx` — звіт; `LAB01_CHECKLIST.md` — ручні кроки перед здачею.
+- `REPORT.md` — звіт ЛР2; `docs/lab01/REPORT.md` — архів звіту ЛР1.
 
-Каталоги `target/` та `out/` не додаються до Git. HTML-документацію можна створити командою `javadoc` із JDK. Команда `python scripts/export_report.py` експортує звіт у DOCX; Python потрібний лише для експорту. Перед здачею перевірте верстку DOCX у Word або LibreOffice.
+Каталоги `target/` та `out/` не додаються до Git. HTML-документацію можна створити командою `javadoc` із JDK. Для експорту звіту в DOCX потрібний Python: `python scripts/export_report.py --input REPORT.md --output REPORT_LAB02.docx`. 
 
 ## Налаштування ШІ
 
-Спільні правила містяться у `.github/copilot-instructions.md`. Custom agents у `.github/agents/` вибираються за назвою у Copilot Chat:
+Спільні правила містяться у `.github/copilot-instructions.md`. Описи ролей для Copilot Chat зберігаються в `.github/agents/`:
 
 | Агент | Призначення | Перевірка |
 | --- | --- | --- |
@@ -100,4 +120,5 @@ java -jar target/lab01-1.0.0-all.jar --input data/input.csv --output out/report.
 | writer | README, REPORT, опис PR | Редагує документацію |
 | reviewer | Рев'ю та підготовка до захисту | Повертає зауваження без редагування |
 
-У VS Code перевірте, чи застосовуються instructions і чи доступні інструменти, зазначені у файлах агентів. Внесок ШІ описано в [розділі 10 звіту](REPORT.md#10-академічна-доброчесність).
+Внесок ШІ описано в [розділі 10 звіту](REPORT.md#10-академічна-доброчесність).
+

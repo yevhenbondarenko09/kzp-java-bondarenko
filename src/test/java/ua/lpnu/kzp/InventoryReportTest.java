@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
@@ -12,6 +15,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class InventoryReportTest {
+    @Test
+    void preservesLab01Baseline() throws IOException {
+        List<String> input;
+        String expected;
+        try (InputStream csv = getClass().getResourceAsStream("/lab01/input.csv");
+                InputStream report = getClass().getResourceAsStream("/lab01/report.txt")) {
+            input = new String(csv.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+            expected = new String(report.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        assertEquals(expected.replace("\r\n", "\n"), InventoryReport.generate(input).replace("\r\n", "\n"));
+    }
+
     @Test
     void calculatesVariantFourAndReportsInvalidRows() {
         String actual = InventoryReport.generate(List.of(

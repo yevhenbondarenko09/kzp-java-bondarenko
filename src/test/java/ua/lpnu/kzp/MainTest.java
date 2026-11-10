@@ -42,9 +42,35 @@ class MainTest {
             ByteArrayOutputStream stderr = new ByteArrayOutputStream();
             assertEquals(0, run(new String[]{option}, stdout, stderr));
             assertTrue(stdout.toString(StandardCharsets.UTF_8).contains(
-                    "--version".equals(option) ? "1.0.0" : "--input"));
+                    "--version".equals(option) ? System.getProperty("project.version") : "--input"));
             assertEquals("", stderr.toString(StandardCharsets.UTF_8));
         }
+    }
+
+    @Test
+    void versionAndHelpMatchMavenBuildMetadata() {
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        assertEquals(0, run(new String[]{"--version"}, stdout, stderr));
+        assertEquals(System.getProperty("project.version"),
+                stdout.toString(StandardCharsets.UTF_8).strip());
+        stdout.reset();
+        assertEquals(0, run(new String[]{"--help"}, stdout, stderr));
+        assertTrue(stdout.toString(StandardCharsets.UTF_8).contains(System.getProperty("project.jarName")));
+        assertEquals("", stderr.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void parserReturnsDefaultAndExplicitPathsWithoutReadingFiles() {
+        ArgumentParser.Options defaults = ArgumentParser.parse(new String[]{});
+        assertEquals(Path.of("data", "input.csv"), defaults.input());
+        assertEquals(Path.of("out", "report.txt"), defaults.output());
+        assertFalse(defaults.help());
+        assertFalse(defaults.version());
+        ArgumentParser.Options explicit = ArgumentParser.parse(new String[]{
+            "--output", "custom-output.txt", "--input", "custom-input.csv"});
+        assertEquals(Path.of("custom-input.csv"), explicit.input());
+        assertEquals(Path.of("custom-output.txt"), explicit.output());
     }
 
     @ParameterizedTest
