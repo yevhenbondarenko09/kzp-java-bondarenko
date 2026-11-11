@@ -42,24 +42,24 @@ jobs:
       - name: Run executable JAR on Unix
         if: runner.os != 'Windows'
         run: |
-          jar=$(find target -maxdepth 1 -name '*-all.jar' -print -quit)
-          test -n "$jar"
-          java -jar "$jar" --version
-          java -jar "$jar" --input data/input.csv --output target/ci-report.txt
+          test -f target/autoparts-all.jar
+          java -jar target/autoparts-all.jar --version
+          java -jar target/autoparts-all.jar --input data/input.csv --output target/ci-report.txt
 
       - name: Run executable JAR on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $jar = Get-ChildItem -Path target -Filter '*-all.jar' | Select-Object -First 1
-          if (-not $jar) { throw 'Executable JAR was not created' }
-          java -jar $jar.FullName --version
-          java -jar $jar.FullName --input data/input.csv --output target/ci-report.txt
+          if (-not (Test-Path -LiteralPath target/autoparts-all.jar)) { throw 'Executable JAR was not created' }
+          java -jar target/autoparts-all.jar --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          java -jar target/autoparts-all.jar --input data/input.csv --output target/ci-report.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload JAR Artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: jar-${{ matrix.os }}-${{ github.run_number }}
-          path: target/*-all.jar
+          path: target/autoparts-all.jar
           if-no-files-found: error
