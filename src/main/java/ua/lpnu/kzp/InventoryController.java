@@ -12,7 +12,7 @@ final class InventoryController {
             ArgumentParser.Options options = ArgumentParser.parse(args);
             if (options.help()) {
                 output.printf(Locale.ROOT, String.join("%n",
-                        "Склад автозапчастин — лабораторна № 3, варіант 4",
+                        "Склад автозапчастин — лабораторна № 4, варіант 4",
                         "Запуск: java -jar target/%s [--input <файл>] [--output <файл>]"
                                 .formatted(ApplicationInfo.read("jarName")),
                         "  --input    CSV UTF-8; типово data/input.csv",
