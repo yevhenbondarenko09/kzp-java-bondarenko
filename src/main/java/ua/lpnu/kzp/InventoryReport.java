@@ -15,16 +15,12 @@ public final class InventoryReport {
      * @return звіт із діагностикою у вихідному порядку
      */
     public static String generate(List<String> lines) {
-        Analysis analysis = analyze(lines);
-        List<SparePart> parts = analysis.parts();
-        List<String> errors = analysis.errors();
-        StockValue total = analysis.total();
-        return format(parts, errors, total);
+        return format(analyze(lines));
     }
 
     /** Розбирає вхід один раз для старого звіту й нових предметних операцій. */
     static Analysis analyze(List<String> lines) {
-        List<SparePart> parts = new ArrayList<>();
+        Repository<SparePart> parts = new Repository<>();
         List<String> errors = new ArrayList<>();
         StockValue total = new StockValue(0, 0);
         for (int index = 0; index < lines.size(); index++) {
@@ -50,7 +46,7 @@ public final class InventoryReport {
                 errors.add(String.format(Locale.ROOT, "Рядок %d: %s", index + 1, reason));
             }
         }
-        return new Analysis(parts, errors, total);
+        return new Analysis(parts.all(), errors, total);
     }
 
     /** Зберігає прийняті записи окремо від множини унікальних деталей. */
@@ -72,7 +68,11 @@ public final class InventoryReport {
         }
     }
 
-    private static String format(List<SparePart> parts, List<String> errors, StockValue total) {
+    /** Формує старий звіт із уже перевірених записів без повторного розбору CSV. */
+    static String format(Analysis analysis) {
+        List<SparePart> parts = analysis.parts();
+        List<String> errors = analysis.errors();
+        StockValue total = analysis.total();
         // min зі спадним компаратором залишає перший запис при рівній ціні.
         var highest = parts.stream().min(Comparator.comparingDouble(SparePart::unitPrice).reversed());
         StringBuilder report = new StringBuilder();
