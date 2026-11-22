@@ -12,11 +12,12 @@ final class InventoryController {
             ArgumentParser.Options options = ArgumentParser.parse(args);
             if (options.help()) {
                 output.printf(Locale.ROOT, String.join("%n",
-                        "Склад автозапчастин — лабораторна № 4, варіант 4",
-                        "Запуск: java -jar target/%s [--input <файл>] [--output <файл>]"
+                        "Склад автозапчастин — лабораторна № 5, варіант 4",
+                        "Запуск: java -jar target/%s [--input <файл>] [--output <файл>] [--export <файл>]"
                                 .formatted(ApplicationInfo.read("jarName")),
                         "  --input    CSV UTF-8; типово data/input.csv",
                         "  --output   Звіт UTF-8; типово out/report.txt",
+                        "  --export   Окремий CSV UTF-8 прийнятих деталей із заголовком",
                         "  --help     Довідка",
                         "  --version  Версія програми",
                         "Формат: sku;name;stock;unitPrice;supplier[;kind]",
@@ -30,10 +31,22 @@ final class InventoryController {
             if (FileReport.sameFile(options.input(), options.output())) {
                 throw new IllegalArgumentException("Вхідний і вихідний файли мають бути різними");
             }
-            String report = InventoryReport.generate(FileReport.readLines(options.input()));
+            if (options.export() != null && (FileReport.sameFile(options.input(), options.export())
+                    || FileReport.sameFile(options.output(), options.export()))) {
+                throw new IllegalArgumentException("CSV-експорт, вхід і звіт мають бути різними файлами");
+            }
+            InventoryReport.Analysis analysis = InventoryReport.analyze(FileReport.readLines(options.input()));
+            if (options.export() != null) {
+                CsvExporter.write(options.export(), SparePartRecord.class,
+                        analysis.parts().stream().map(SparePartRecord::fromPart).toList());
+            }
+            String report = InventoryReport.format(analysis);
             FileReport.write(options.output(), report);
             output.print(report);
             return 0;
+        } catch (DataStorageException exception) {
+            errors.printf(Locale.ROOT, "Помилка CSV: %s%n", exception.getMessage());
+            return 1;
         } catch (InvalidPathException exception) {
             errors.printf(Locale.ROOT, "Помилка шляху: %s%n", exception.getMessage());
             return 2;

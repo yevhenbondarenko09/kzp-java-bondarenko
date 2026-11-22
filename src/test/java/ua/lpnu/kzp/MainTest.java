@@ -2,6 +2,7 @@ package ua.lpnu.kzp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -65,6 +66,7 @@ class MainTest {
         ArgumentParser.Options defaults = ArgumentParser.parse(new String[]{});
         assertEquals(Path.of("data", "input.csv"), defaults.input());
         assertEquals(Path.of("out", "report.txt"), defaults.output());
+        assertNull(defaults.export());
         assertFalse(defaults.help());
         assertFalse(defaults.version());
         ArgumentParser.Options explicit = ArgumentParser.parse(new String[]{
@@ -74,7 +76,7 @@ class MainTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"--unknown", "--input", "--output"})
+    @ValueSource(strings = {"--unknown", "--input", "--output", "--export"})
     void invalidOptionsReturnUsageError(String option) {
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -89,6 +91,7 @@ class MainTest {
             {"--input", "--output", "out.txt"},
             {"--input", "a", "--input", "b"},
             {"--output", "a", "--output", "b"},
+            {"--export", "a", "--export", "b"}, {"--export", "--input", "a"},
             {"--input", " "}, {"--help", "--version"}, {"--input", "\u0000"}
         };
         for (String[] args : arguments) {
@@ -127,6 +130,70 @@ class MainTest {
         assertEquals(1, run(new String[]{"--input", input.toString(), "--output", temporary.toString()},
                 stdout, new ByteArrayOutputStream()));
         assertEquals("", stdout.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void exportsAcceptedPartsAndKeepsOldConsoleReport() throws Exception {
+        Path input = temporary.resolve("input.csv");
+        Path report = temporary.resolve("report.txt");
+        Path export = temporary.resolve("нові дані").resolve("деталі.csv");
+        String text = "A;Фільтр, \"Тест\";4;100.25;Bosch;REPLACEMENT\ninvalid\n";
+        Files.writeString(input, text, StandardCharsets.UTF_8);
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        assertEquals(0, run(new String[]{"--input", input.toString(), "--output", report.toString(),
+            "--export", export.toString()}, stdout, stderr));
+        assertEquals(java.util.List.of(new SparePartRecord("A", "Фільтр, \"Тест\"", 4, 100.25, "Bosch")),
+                SparePartRecord.read(export));
+        assertEquals(InventoryReport.generate(text.lines().toList()), stdout.toString(StandardCharsets.UTF_8));
+        assertEquals(stdout.toString(StandardCharsets.UTF_8), Files.readString(report, StandardCharsets.UTF_8));
+        assertEquals("", stderr.toString(StandardCharsets.UTF_8));
+        assertEquals(text, Files.readString(input, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void rejectsExportPathsThatOverwriteInputOrReport() throws IOException {
+        Path input = temporary.resolve("input.csv");
+        Path report = temporary.resolve("report.txt");
+        Files.writeString(input, "A;N;1;2;S", StandardCharsets.UTF_8);
+        Files.writeString(report, "keep report", StandardCharsets.UTF_8);
+        Path alias = temporary.resolve("input-link.csv");
+        Files.createLink(alias, input);
+        for (Path export : java.util.List.of(input, report, temporary.resolve(".").resolve("input.csv"), alias)) {
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            assertEquals(2, run(new String[]{"--input", input.toString(), "--output", report.toString(),
+                "--export", export.toString()}, stdout, new ByteArrayOutputStream()));
+            assertEquals("", stdout.toString(StandardCharsets.UTF_8));
+            assertEquals("A;N;1;2;S", Files.readString(input, StandardCharsets.UTF_8));
+            assertEquals("keep report", Files.readString(report, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void exportFailureReturnsFileErrorAndLeavesExistingReport() throws IOException {
+        Path input = temporary.resolve("input.csv");
+        Path report = temporary.resolve("report.txt");
+        Files.writeString(input, "A;N;1;2;S", StandardCharsets.UTF_8);
+        Files.writeString(report, "keep", StandardCharsets.UTF_8);
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        assertEquals(1, run(new String[]{"--input", input.toString(), "--output", report.toString(),
+            "--export", temporary.toString()}, stdout, stderr));
+        assertEquals("", stdout.toString(StandardCharsets.UTF_8));
+        assertTrue(stderr.toString(StandardCharsets.UTF_8).contains("Помилка CSV:"));
+        assertEquals("keep", Files.readString(report, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void emptyInputExportsOnlyHeader() throws Exception {
+        Path input = temporary.resolve("empty.csv");
+        Path export = temporary.resolve("empty-export.csv");
+        Path report = temporary.resolve("empty-report.txt");
+        Files.writeString(input, "", StandardCharsets.UTF_8);
+        assertEquals(0, run(new String[]{"--input", input.toString(), "--output", report.toString(),
+            "--export", export.toString()}, new ByteArrayOutputStream(), new ByteArrayOutputStream()));
+        assertEquals("артикул,виробник,назва,ціна,кількість\n", Files.readString(export, StandardCharsets.UTF_8));
+        assertTrue(SparePartRecord.read(export).isEmpty());
     }
 
     private static int run(String[] args, ByteArrayOutputStream stdout, ByteArrayOutputStream stderr) {
