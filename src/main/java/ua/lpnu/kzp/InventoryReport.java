@@ -1,7 +1,7 @@
 package ua.lpnu.kzp;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -60,38 +60,29 @@ public final class InventoryReport {
             errors = List.copyOf(errors);
         }
 
-        int uniqueCount() { return new HashSet<>(parts).size(); }
+        int uniqueCount() { return Math.toIntExact(parts.stream().distinct().count()); }
 
         /** Сума резервів на одиницю за всіма записами, включно з повторами. */
         double warrantyCost() {
-            double result = 0;
-            for (SparePart part : parts) {
-                result += part.warrantyCost();
-                if (!Double.isFinite(result)) {
-                    throw new IllegalArgumentException("гарантійна вартість виходить за числовий діапазон");
-                }
+            double result = parts.stream().mapToDouble(SparePart::warrantyCost).sum();
+            if (!Double.isFinite(result)) {
+                throw new IllegalArgumentException("гарантійна вартість виходить за числовий діапазон");
             }
             return result;
         }
     }
 
     private static String format(List<SparePart> parts, List<String> errors, StockValue total) {
-        SparePart highest = null;
-        for (SparePart part : parts) {
-            if (highest == null || part.unitPrice() > highest.unitPrice()) {
-                highest = part;
-            }
-        }
+        // min зі спадним компаратором залишає перший запис при рівній ціні.
+        var highest = parts.stream().min(Comparator.comparingDouble(SparePart::unitPrice).reversed());
         StringBuilder report = new StringBuilder();
         report.append(String.format(Locale.ROOT,
                 "Склад автозапчастин — звіт%nКоректних записів: %d%nЗагальна кількість деталей: %d%nВартість запасу: %.2f грн%n",
                 parts.size(), total.stock(), total.value()));
-        if (highest == null) {
-            report.append("Найдорожча деталь: немає коректних записів").append(System.lineSeparator());
-        } else {
-            report.append(String.format(Locale.ROOT, "Найдорожча деталь: %s — %s; ціна: %.2f грн%n",
-                    highest.sku(), highest.name(), highest.unitPrice()));
-        }
+        report.append(highest.map(part -> String.format(Locale.ROOT,
+                "Найдорожча деталь: %s — %s; ціна: %.2f грн%n",
+                part.sku(), part.name(), part.unitPrice()))
+                .orElse(String.format(Locale.ROOT, "Найдорожча деталь: немає коректних записів%n")));
         report.append(String.format(Locale.ROOT, "Помилок: %d%n", errors.size()));
         for (String error : errors) {
             report.append(error).append(System.lineSeparator());
